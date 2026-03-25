@@ -4,8 +4,8 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Sync your vault natively with a private GitHub repository on both Desktop and Mobile.",
-	"author": "Obsidian User",
-	"authorUrl": "https://github.com",
+	"author": "swekizer",
+	"authorUrl": "https://github.com/swekizer",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }
