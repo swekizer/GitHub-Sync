@@ -2,31 +2,32 @@ import git from 'isomorphic-git';
 import { obsidianHttpClient as http } from './httpClient';
 import { ObsidianFS } from './fs';
 
-// Obsidian files that change constantly and should not be committed
-const IGNORED_PATHS = [
-    '.obsidian/workspace.json',
-    '.obsidian/workspace-mobile.json',
-    '.obsidian/workspace-cache/',
-    '.trash/',
-];
-
-function isIgnored(filepath: string): boolean {
-    return IGNORED_PATHS.some(pattern =>
-        pattern.endsWith('/')
-            ? filepath.startsWith(pattern) || filepath === pattern.slice(0, -1)
-            : filepath === pattern
-    );
-}
-
 export class GitManager {
     fs: ObsidianFS;
     dir: string;
+    configDir: string;
     author: { name: string; email: string };
-    
-    constructor(fs: ObsidianFS) {
+
+    constructor(fs: ObsidianFS, configDir: string) {
         this.fs = fs;
+        this.configDir = configDir;
         this.dir = '/'; // Vault root
         this.author = { name: 'Obsidian User', email: 'user@example.com' };
+    }
+
+    isIgnored(filepath: string): boolean {
+        const ignoredPaths = [
+            `${this.configDir}/workspace.json`,
+            `${this.configDir}/workspace-mobile.json`,
+            `${this.configDir}/workspace-cache/`,
+            '.trash/',
+        ];
+
+        return ignoredPaths.some(pattern =>
+            pattern.endsWith('/')
+                ? filepath.startsWith(pattern) || filepath === pattern.slice(0, -1)
+                : filepath === pattern
+        );
     }
 
     setAuthor(name: string, email: string) {
@@ -99,17 +100,17 @@ export class GitManager {
         } catch (e) {
             // Remote is empty or unreachable — that's fine.
             // The first push will create the remote history.
-            console.log('Initial fetch during setup skipped:', (e as Error).message);
+            console.debug('Initial fetch during setup skipped:', (e as Error).message);
         }
     }
 
     async stageAll() {
         const matrix = await git.statusMatrix({ fs: this.fs, dir: this.dir });
         for (const row of matrix) {
-            const filepath = row[0] as string;
+            const filepath = row[0];
             const workdirStatus = row[2];
 
-            if (isIgnored(filepath)) continue;
+            if (this.isIgnored(filepath)) continue;
 
             if (workdirStatus === 0) {
                 await git.remove({ fs: this.fs, dir: this.dir, filepath });

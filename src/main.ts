@@ -16,7 +16,7 @@ export default class GithubSyncPlugin extends Plugin {
 		await this.loadSettings();
 
 		const obsFs = new ObsidianFS(this.app.vault.adapter);
-		this.gitManager = new GitManager(obsFs);
+		this.gitManager = new GitManager(obsFs, this.app.vault.configDir);
 
 		this.addRibbonIcon('refresh-cw', 'Sync with GitHub', async () => {
 			await this.runSync();
@@ -104,7 +104,7 @@ export default class GithubSyncPlugin extends Plugin {
 		if (this.settings.autoSyncEnabled && this.settings.autoSyncInterval >= 1) {
 			const intervalMs = this.settings.autoSyncInterval * 60 * 1000;
 			this.autoSyncIntervalId = window.setInterval(() => {
-				this.runSync();
+				void this.runSync();
 			}, intervalMs);
 			// Register interval with Obsidian so it's cleaned up automatically
 			this.registerInterval(this.autoSyncIntervalId);

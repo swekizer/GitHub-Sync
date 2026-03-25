@@ -79,7 +79,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		containerEl.createEl('h3', { text: 'Auto Sync' });
+		new Setting(containerEl).setName('Auto Sync').setHeading();
 
 		new Setting(containerEl)
 			.setName('Enable Auto Sync')
