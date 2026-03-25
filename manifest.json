@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-github-sync",
-	"name": "GitHub Sync",
+	"id": "direct-git-sync",
+	"name": "Direct Git Sync",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Sync your Obsidian vault with a private GitHub repository natively on both Desktop and Mobile.",
+	"description": "Sync your vault natively with a private GitHub repository on both Desktop and Mobile.",
 	"author": "Obsidian User",
 	"authorUrl": "https://github.com",
 	"fundingUrl": "",

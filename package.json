@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-github-sync",
+	"name": "direct-git-sync",
 	"version": "1.0.0",
-	"description": "Sync your Obsidian vault with a private GitHub repository on both Desktop and Mobile.",
+	"description": "Sync your vault natively with a private GitHub repository on both Desktop and Mobile.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
