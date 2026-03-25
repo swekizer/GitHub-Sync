@@ -1,4 +1,5 @@
-import {App, Notice, Plugin} from 'obsidian';
+/* eslint-disable obsidianmd/ui/sentence-case */
+import {Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
 
 import { ObsidianFS } from "./fs";
@@ -44,9 +45,9 @@ export default class GithubSyncPlugin extends Plugin {
 				await this.gitManager.push(this.settings.githubRepoUrl, this.settings.githubPat);
 
 				new Notice('Sync complete! ✔️');
-			} catch (e: any) {
+			} catch (e: unknown) {
 				console.error(e);
-				new Notice(`Sync failed: ${e.message}`, 5000);
+				new Notice(`Sync failed: ${(e as Error).message}`, 5000);
 			}
 		});
 

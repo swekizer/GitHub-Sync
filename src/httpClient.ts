@@ -1,7 +1,8 @@
+/* global AsyncIterable */
 import { requestUrl, RequestUrlParam } from "obsidian";
 
 export const obsidianHttpClient = {
-    async request({ url, method, headers, body }: any) {
+    async request({ url, method, headers, body }: { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> }) {
         let requestBody: ArrayBuffer | undefined = undefined;
         
         if (body) {
@@ -20,14 +21,16 @@ export const obsidianHttpClient = {
                 combined.set(chunk, offset);
                 offset += chunk.length;
             }
-            requestBody = combined.buffer as ArrayBuffer;
+            requestBody = combined.buffer;
         }
 
         // Clean headers, Obsidian requestUrl sometimes rejects certain headers or needs them properly cased
         const cleanHeaders: Record<string, string> = {};
         if (headers) {
             for (const key of Object.keys(headers)) {
-                cleanHeaders[key] = headers[key];
+                if (headers[key]) {
+                    cleanHeaders[key] = headers[key];
+                }
             }
         }
 

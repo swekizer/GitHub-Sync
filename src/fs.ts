@@ -83,7 +83,7 @@ export class ObsidianFS {
         }
     }
 
-    async writeFile(path: string, data: Uint8Array | string, options?: any) {
+    async writeFile(path: string, data: Uint8Array | string, options?: unknown) {
         const normalized = normalize(path);
         
         // Ensure parent directories exist
@@ -103,7 +103,7 @@ export class ObsidianFS {
         } else {
             // Must slice the buffer in case it's a view of a larger shared buffer
             const exactBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-            await this.adapter.writeBinary(normalized, exactBuffer as ArrayBuffer);
+            await this.adapter.writeBinary(normalized, exactBuffer);
         }
     }
 

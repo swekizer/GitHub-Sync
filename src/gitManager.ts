@@ -22,7 +22,7 @@ export class GitManager {
         try {
             await git.log({ fs: this.fs, dir: this.dir, depth: 1 });
             return true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -51,9 +51,7 @@ export class GitManager {
         const matrix = await git.statusMatrix({ fs: this.fs, dir: this.dir });
         for (const row of matrix) {
             const filepath = row[0];
-            const headStatus = row[1];
             const workdirStatus = row[2];
-            const stageStatus = row[3];
             
             // we don't commit .obsidian workspace files usually, but let's just commit everything for now
             // or we could filter out `.obsidian/workspace` strings
@@ -100,8 +98,8 @@ export class GitManager {
                 abortOnConflict: false,
                 author: this.author
             });
-        } catch (e: any) {
-            if (e.name === 'MergeNotSupportedError') {
+        } catch (e: unknown) {
+            if (e instanceof Error && e.name === 'MergeNotSupportedError') {
                 throw new Error("Conflict detected during the auto-merge. For now, please resolve manually!");
             }
             throw e;
