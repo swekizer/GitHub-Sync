@@ -101,8 +101,8 @@ export class ObsidianFS {
         if (typeof data === 'string') {
             await this.adapter.write(normalized, data);
         } else {
-            // Must slice the buffer in case it's a view of a larger shared buffer
-            const exactBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+            // Copy the slice into a new ArrayBuffer to avoid SharedArrayBuffer issues
+            const exactBuffer = data.slice().buffer;
             await this.adapter.writeBinary(normalized, exactBuffer);
         }
     }
@@ -164,11 +164,11 @@ export class ObsidianFS {
         return this.stat(path);
     }
 
-    async symlink(target: string, path: string) {
+    symlink(target: string, path: string) {
         throw new Error('Symlinks are not supported in ObsidianFS');
     }
 
-    async readlink(path: string) {
+    readlink(path: string) {
         throw new Error('Symlinks are not supported in ObsidianFS');
     }
 }

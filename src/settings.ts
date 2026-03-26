@@ -1,4 +1,4 @@
-/* eslint-disable obsidianmd/ui/sentence-case */
+/* eslint-disable obsidianmd/ui/sentence-case -- Preserving proper acronym casing (GitHub, PAT, URL) */
 import {App, PluginSettingTab, Setting} from "obsidian";
 import GithubSyncPlugin from "./main";
 
@@ -33,7 +33,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('GitHub Repository URL')
+			.setName('GitHub repository URL')
 			.setDesc('Full URL to the repository (e.g., https://github.com/user/repo)')
 			.addText(text => text
 				.setPlaceholder('https://github.com/...')
@@ -44,7 +44,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Personal Access Token (PAT)')
+			.setName('Personal access token (PAT)')
 			.setDesc('GitHub PAT with repo permissions. Keep this secret!')
 			.addText(text => {
 				text.inputEl.type = 'password';
@@ -58,7 +58,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
             });
 
 		new Setting(containerEl)
-			.setName('Author Name')
+			.setName('Author name')
 			.setDesc('Name to use for Git commits')
 			.addText(text => text
 				.setPlaceholder('Your Name')
@@ -69,7 +69,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Author Email')
+			.setName('Author email')
 			.setDesc('Email to use for Git commits')
 			.addText(text => text
 				.setPlaceholder('you@example.com')
@@ -79,10 +79,10 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl).setName('Auto Sync').setHeading();
+		new Setting(containerEl).setName('Auto sync').setHeading();
 
 		new Setting(containerEl)
-			.setName('Enable Auto Sync')
+			.setName('Enable auto sync')
 			.setDesc('Automatically sync your vault at a regular interval.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.autoSyncEnabled)
@@ -93,7 +93,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Sync Interval (minutes)')
+			.setName('Sync interval (minutes)')
 			.setDesc('How often to auto-sync. Minimum 1 minute.')
 			.addText(text => text
 				.setPlaceholder('5')
@@ -108,3 +108,6 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 	}
 }
+
+/* eslint-enable obsidianmd/ui/sentence-case */
+

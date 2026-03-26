@@ -1,4 +1,4 @@
-/* eslint-disable obsidianmd/ui/sentence-case */
+/* eslint-disable obsidianmd/ui/sentence-case -- Preserving proper acronym casing (GitHub, PAT, URL) */
 import {Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
 
@@ -38,17 +38,17 @@ export default class GithubSyncPlugin extends Plugin {
 
 	setStatus(state: 'idle' | 'syncing' | 'failed' | 'unconfigured', detail?: string) {
 		const labels = {
-			idle: 'Git: ✓ Synced',
-			syncing: `Git: ⟳ ${detail || 'Syncing...'}`,
-			failed: 'Git: ✗ Sync failed',
-			unconfigured: 'Git: ⚠ Not configured',
+			idle: 'Git: ✓ synced',
+			syncing: `Git: ⟳ ${detail || 'syncing...'}`,
+			failed: 'Git: ✗ sync failed',
+			unconfigured: 'Git: ⚠ not configured',
 		};
 		this.statusBarItemEl.setText(labels[state]);
 	}
 
 	async runSync() {
 		if (!this.settings.githubRepoUrl || !this.settings.githubPat) {
-			new Notice('Please configure GitHub Repo URL and PAT in settings first.');
+			new Notice('Please configure GitHub repo URL and PAT in settings first.');
 			this.setStatus('unconfigured');
 			return;
 		}
@@ -60,31 +60,31 @@ export default class GithubSyncPlugin extends Plugin {
 
 		this.isSyncing = true;
 		new Notice('Sync started...');
-		this.setStatus('syncing', 'Starting...');
+		this.setStatus('syncing', 'starting...');
 		this.gitManager.setAuthor(this.settings.authorName || 'Obsidian User', this.settings.authorEmail || 'user@example.com');
 
 		try {
 			// 1. Init/Clone fallback
-			this.setStatus('syncing', 'Initializing...');
+			this.setStatus('syncing', 'initializing...');
 			await this.gitManager.initOrClone(this.settings.githubRepoUrl, this.settings.githubPat);
 			
 			// 2. Stage & Commit
-			this.setStatus('syncing', 'Staging...');
-			new Notice('Staging & Committing...');
+			this.setStatus('syncing', 'staging...');
+			new Notice('Staging & committing...');
 			await this.gitManager.stageAll();
 			await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
 
 			// 3. Fetch & Merge
-			this.setStatus('syncing', 'Fetching...');
+			this.setStatus('syncing', 'fetching...');
 			new Notice('Fetching from GitHub...');
 			const fetchHead = await this.gitManager.fetch(this.settings.githubRepoUrl, this.settings.githubPat);
 			
-			this.setStatus('syncing', 'Merging...');
+			this.setStatus('syncing', 'merging...');
 			new Notice('Merging changes...');
 			await this.gitManager.merge(fetchHead);
 
 			// 4. Push
-			this.setStatus('syncing', 'Pushing...');
+			this.setStatus('syncing', 'pushing...');
 			new Notice('Pushing to GitHub...');
 			await this.gitManager.push(this.settings.githubRepoUrl, this.settings.githubPat);
 
@@ -126,4 +126,7 @@ export default class GithubSyncPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
+
+
+/* eslint-enable obsidianmd/ui/sentence-case */
 

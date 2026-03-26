@@ -50,6 +50,7 @@ export const obsidianHttpClient = {
             headers: response.headers,
             body: (async function* () {
                 if (response.arrayBuffer) {
+                    await Promise.resolve(); // fix for: Async generator function has no 'await' expression
                     yield new Uint8Array(response.arrayBuffer);
                 }
             })(),
