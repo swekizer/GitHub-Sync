@@ -1,4 +1,4 @@
-/* global AsyncIterable */
+/* global AsyncIterable -- AsyncIterable is used by isomorphic-git's HttpClient interface but is not included in the TypeScript DOM lib target; declaring it globally prevents a compile error */
 import { requestUrl, RequestUrlParam } from "obsidian";
 
 export const obsidianHttpClient = {

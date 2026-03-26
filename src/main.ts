@@ -47,7 +47,7 @@ export default class GithubSyncPlugin extends Plugin {
 
 	async runSync() {
 		if (!this.settings.githubRepoUrl || !this.settings.githubPat) {
-			new Notice('Please configure GitHub repo URL and PAT in settings first.'); // eslint-disable-line obsidianmd/ui/sentence-case -- Notice contains valid acronyms
+			new Notice('Please configure GitHub repo URL and PAT in settings first.');
 			this.setStatus('unconfigured');
 			return;
 		}
