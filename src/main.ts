@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/ui/sentence-case -- Preserving proper acronym casing (GitHub, PAT, URL) */
 import {Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
 
@@ -127,6 +126,4 @@ export default class GithubSyncPlugin extends Plugin {
 	}
 }
 
-
-/* eslint-enable obsidianmd/ui/sentence-case */
 

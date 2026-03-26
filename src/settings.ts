@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/ui/sentence-case -- Preserving proper acronym casing (GitHub, PAT, URL) */
 import {App, PluginSettingTab, Setting} from "obsidian";
 import GithubSyncPlugin from "./main";
 
@@ -108,6 +107,4 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 	}
 }
-
-/* eslint-enable obsidianmd/ui/sentence-case */
 
