@@ -43,12 +43,12 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Personal access token (PAT)')
-			.setDesc('GitHub PAT with repo permissions. Keep this secret!')
+			.setName('Personal access token')
+			.setDesc('A GitHub token with repo permissions')
 			.addText(text => {
 				text.inputEl.type = 'password';
 				text
-				.setPlaceholder('ghp_...')
+				.setPlaceholder('Ghp_xxxx')
 				.setValue(this.plugin.settings.githubPat)
 				.onChange(async (value) => {
 					this.plugin.settings.githubPat = value;
@@ -60,7 +60,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 			.setName('Author name')
 			.setDesc('Name to use for Git commits')
 			.addText(text => text
-				.setPlaceholder('Your Name')
+				.setPlaceholder('Your name')
 				.setValue(this.plugin.settings.authorName)
 				.onChange(async (value) => {
 					this.plugin.settings.authorName = value;
@@ -71,7 +71,7 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 			.setName('Author email')
 			.setDesc('Email to use for Git commits')
 			.addText(text => text
-				.setPlaceholder('you@example.com')
+				.setPlaceholder('Name@example.com')
 				.setValue(this.plugin.settings.authorEmail)
 				.onChange(async (value) => {
 					this.plugin.settings.authorEmail = value;
