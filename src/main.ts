@@ -47,7 +47,7 @@ export default class GithubSyncPlugin extends Plugin {
 
 	async runSync() {
 		if (!this.settings.githubRepoUrl || !this.settings.githubPat) {
-			new Notice('Please configure GitHub repo URL and PAT in settings first.');
+			new Notice('Please configure your GitHub repository URL and personal access token in settings.');
 			this.setStatus('unconfigured');
 			return;
 		}
