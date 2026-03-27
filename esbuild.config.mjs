@@ -31,10 +31,11 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtinModules.filter(m => m !== 'path')],
+		...builtinModules.filter(m => m !== 'path' && m !== 'buffer')],
 	alias: {
 		"path": "path-browserify",
 	},
+	inject: ["./esbuild-inject.js"],
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
