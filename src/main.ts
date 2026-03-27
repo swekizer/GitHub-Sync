@@ -57,21 +57,32 @@ export default class GithubSyncPlugin extends Plugin {
 			return;
 		}
 
-		this.isSyncing = true;
-		new Notice('Sync started...');
-		this.setStatus('syncing', 'starting...');
-		this.gitManager.setAuthor(this.settings.authorName || 'Obsidian User', this.settings.authorEmail || 'user@example.com');
-
 		try {
+			this.isSyncing = true;
+			new Notice('Sync started...');
+			this.setStatus('syncing', 'starting...');
+			this.gitManager.setAuthor(this.settings.authorName || 'Obsidian User', this.settings.authorEmail || 'user@example.com');
+
 			// 1. Init/Clone fallback
 			this.setStatus('syncing', 'initializing...');
-			await this.gitManager.initOrClone(this.settings.githubRepoUrl, this.settings.githubPat);
+			const localBackups = await this.gitManager.initOrClone(this.settings.githubRepoUrl, this.settings.githubPat);
+			if (localBackups.length > 0) {
+				new Notice(
+					`⚠️ First-time setup: ${localBackups.length} local file(s) were backed up before being overwritten by remote.\n` +
+					localBackups.map(f => `• ${f}`).join('\n'),
+					12000
+				);
+			}
+
 			
-			// 2. Stage & Commit
+			// 2. Stage & Commit (skip commit if nothing changed)
 			this.setStatus('syncing', 'staging...');
-			new Notice('Staging & committing...');
-			await this.gitManager.stageAll();
-			await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
+			new Notice('Staging changes...');
+			const hasChanges = await this.gitManager.stageAll();
+			if (hasChanges) {
+				new Notice('Committing...');
+				await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
+			}
 
 			// 3. Fetch & Merge
 			this.setStatus('syncing', 'fetching...');
@@ -80,7 +91,19 @@ export default class GithubSyncPlugin extends Plugin {
 			
 			this.setStatus('syncing', 'merging...');
 			new Notice('Merging changes...');
-			await this.gitManager.merge(fetchHead);
+			const conflictCopies = await this.gitManager.merge(fetchHead);
+
+			if (conflictCopies.length > 0) {
+				// Conflict resolution: commit the staged files (local kept + remote copies)
+				this.setStatus('syncing', 'resolving conflicts...');
+				await this.gitManager.commit(`Sync: conflict resolved on ${new Date().toLocaleString()}`);
+				new Notice(
+					`⚠️ Conflict in ${conflictCopies.length} file(s).\n` +
+					`Your local version was kept. Remote version saved as:\n` +
+					conflictCopies.map(f => `• ${f}`).join('\n'),
+					12000
+				);
+			}
 
 			// 4. Push
 			this.setStatus('syncing', 'pushing...');

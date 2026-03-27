@@ -16,17 +16,18 @@ export class GitManager {
     }
 
     isIgnored(filepath: string): boolean {
+        const lowerFilepath = filepath.toLowerCase();
         const ignoredPaths = [
-            `${this.configDir}/workspace.json`,
-            `${this.configDir}/workspace-mobile.json`,
-            `${this.configDir}/workspace-cache/`,
-            '.trash/',
+            `${this.configDir}/workspace.json`.toLowerCase(),
+            `${this.configDir}/workspace-mobile.json`.toLowerCase(),
+            `${this.configDir}/workspace-cache/`.toLowerCase(),
+            '.trash/'.toLowerCase(),
         ];
 
         return ignoredPaths.some(pattern =>
             pattern.endsWith('/')
-                ? filepath.startsWith(pattern) || filepath === pattern.slice(0, -1)
-                : filepath === pattern
+                ? lowerFilepath.startsWith(pattern) || lowerFilepath === pattern.slice(0, -1)
+                : lowerFilepath === pattern
         );
     }
 
@@ -52,8 +53,8 @@ export class GitManager {
         });
     }
 
-    async initOrClone(url: string, token: string) {
-        if (await this.isInitialized()) return;
+    async initOrClone(url: string, token: string): Promise<string[]> {
+        if (await this.isInitialized()) return [];
         
         await git.init({ fs: this.fs, dir: this.dir });
         await git.addRemote({ fs: this.fs, dir: this.dir, remote: 'origin', url });
@@ -78,6 +79,36 @@ export class GitManager {
                     ? result.defaultBranch.replace('refs/heads/', '')
                     : 'main';
 
+                // ── Collision check ──────────────────────────────────────────────
+                // Before force-checkout overwrites disk files, back up any local
+                // file that also exists in the remote tree (Dropbox-style).
+                const today = new Date().toISOString().slice(0, 10);
+                const localBackups: string[] = [];
+
+                const remoteFiles = await git.listFiles({
+                    fs: this.fs,
+                    dir: this.dir,
+                    ref: result.fetchHead
+                });
+
+                for (const filepath of remoteFiles) {
+                    try {
+                        await this.fs.promises.stat(filepath); // throws ENOENT if absent
+                        // File exists locally — back it up before checkout overwrites it
+                        const dotIndex = filepath.lastIndexOf('.');
+                        const base = dotIndex !== -1 ? filepath.slice(0, dotIndex) : filepath;
+                        const ext  = dotIndex !== -1 ? filepath.slice(dotIndex) : '';
+                        const backupPath = `${base} (local backup - ${today})${ext}`;
+
+                        const localContent = await this.fs.promises.readFile(filepath);
+                        await this.fs.promises.writeFile(backupPath, localContent as Uint8Array);
+                        localBackups.push(backupPath);
+                    } catch {
+                        // File doesn't exist locally — no collision, nothing to back up
+                    }
+                }
+                // ────────────────────────────────────────────────────────────────
+
                 // Point our local branch at the remote's latest commit
                 await git.writeRef({
                     fs: this.fs,
@@ -96,16 +127,22 @@ export class GitManager {
                     ref: branch,
                     force: true
                 });
+
+                return localBackups;
             }
         } catch (e) {
             // Remote is empty or unreachable — that's fine.
             // The first push will create the remote history.
             console.debug('Initial fetch during setup skipped:', (e as Error).message);
         }
+
+        return [];
     }
 
-    async stageAll() {
+
+    async stageAll(): Promise<boolean> {
         const matrix = await git.statusMatrix({ fs: this.fs, dir: this.dir });
+        let hasChanges = false;
         for (const row of matrix) {
             const filepath = row[0];
             const workdirStatus = row[2];
@@ -114,10 +151,13 @@ export class GitManager {
 
             if (workdirStatus === 0) {
                 await git.remove({ fs: this.fs, dir: this.dir, filepath });
+                hasChanges = true;
             } else if (workdirStatus === 2) {
                 await git.add({ fs: this.fs, dir: this.dir, filepath });
+                hasChanges = true;
             }
         }
+        return hasChanges;
     }
 
     async commit(message: string) {
@@ -142,8 +182,8 @@ export class GitManager {
         return result.fetchHead;
     }
 
-    async merge(theirs: string | null) {
-        if (!theirs) return; // Remote had no commits or branches yet
+    async merge(theirs: string | null): Promise<string[]> {
+        if (!theirs) return []; // Remote had no commits or branches yet
         try {
             const branch = await git.currentBranch({ fs: this.fs, dir: this.dir, fullname: false }) || 'main';
             await git.merge({
@@ -154,9 +194,46 @@ export class GitManager {
                 abortOnConflict: true,
                 author: this.author
             });
+            return []; // Clean merge — no conflicts
         } catch (e: unknown) {
-            if (e instanceof Error && (e.name === 'MergeNotSupportedError' || e.name === 'MergeConflictError')) {
-                throw new Error("Merge conflict detected! The same file was edited on both devices. Please resolve the conflict manually and sync again.");
+            if (e instanceof Error && (e.name === 'MergeConflictError' || e.name === 'MergeNotSupportedError')) {
+                // Dropbox-style resolution: save the remote version as a conflict copy,
+                // keep the local version as the resolved content, and continue syncing.
+                const filepaths: string[] = (e as { data?: { filepaths?: string[] } }).data?.filepaths ?? [];
+
+                if (filepaths.length === 0) {
+                    throw new Error('Merge conflict detected but could not identify conflicting files. Please sync using a Git client.');
+                }
+
+                const today = new Date().toISOString().slice(0, 10);
+                const conflictCopies: string[] = [];
+
+                for (const filepath of filepaths) {
+                    try {
+                        // Read the remote version of the file from the theirs commit
+                        const { blob } = await git.readBlob({ fs: this.fs, dir: this.dir, oid: theirs, filepath });
+
+                        // Build a conflict copy filename: "Notes (remote conflict - 2026-03-27).md"
+                        const dotIndex = filepath.lastIndexOf('.');
+                        const base = dotIndex !== -1 ? filepath.slice(0, dotIndex) : filepath;
+                        const ext  = dotIndex !== -1 ? filepath.slice(dotIndex) : '';
+                        const copyPath = `${base} (remote conflict - ${today})${ext}`;
+
+                        // Write remote version as a new file in the vault
+                        await this.fs.promises.writeFile(copyPath, blob);
+                        conflictCopies.push(copyPath);
+
+                        // Stage the conflict copy so it gets pushed too
+                        await git.add({ fs: this.fs, dir: this.dir, filepath: copyPath });
+
+                        // Stage the original file with the local (kept) content
+                        await git.add({ fs: this.fs, dir: this.dir, filepath });
+                    } catch (readErr) {
+                        console.error(`[DirectGitSync] Failed to create conflict copy for "${filepath}":`, readErr);
+                    }
+                }
+
+                return conflictCopies;
             }
             throw e;
         }

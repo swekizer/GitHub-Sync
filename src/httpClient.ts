@@ -1,7 +1,27 @@
-/* global AsyncIterable -- AsyncIterable is used by isomorphic-git's HttpClient interface but is not included in the TypeScript DOM lib target; declaring it globally prevents a compile error */
-import { requestUrl, RequestUrlParam } from "obsidian";
+import { requestUrl, RequestUrlParam, Platform } from "obsidian";
 
 export const obsidianHttpClient = {
+    async request(params: { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> }) {
+        // Use Node's streaming HTTP client on Desktop to avoid memory exhaustion (OOM crashes) on large repositories.
+        // We must use Obsidian's requestUrl on mobile to bypass CORS, even though it buffers entirely in memory.
+        if (Platform.isDesktop) {
+            try {
+                // Using dynamic require prevents esbuild from crashing the mobile plugin load
+                // @ts-ignore
+                const nodeHttp = require('isomorphic-git/http/node');
+                // The default export or the object itself might have the request method
+                const httpClient = nodeHttp.default || nodeHttp;
+                return await httpClient.request(params);
+            } catch (e) {
+                console.warn('Failed to load Node HTTP client, falling back to Obsidian requestUrl buffer', e);
+            }
+        }
+        
+        return await bufferedHttpClient.request(params);
+    }
+};
+
+const bufferedHttpClient = {
     async request({ url, method, headers, body }: { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> }) {
         let requestBody: ArrayBuffer | undefined = undefined;
         
@@ -34,7 +54,7 @@ export const obsidianHttpClient = {
             }
         }
 
-        const params: RequestUrlParam = {
+        const paramsToPass: RequestUrlParam = {
             url,
             method: method || 'GET',
             headers: cleanHeaders,
@@ -42,7 +62,7 @@ export const obsidianHttpClient = {
             throw: false // Don't throw on 4xx/5xx, return the response object
         };
 
-        const response = await requestUrl(params);
+        const response = await requestUrl(paramsToPass);
 
         return {
             url,
