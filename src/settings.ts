@@ -9,6 +9,7 @@ export interface GithubSyncSettings {
 	autoSyncEnabled: boolean;
 	autoSyncInterval: number; // in minutes
 	ignoredPaths: string;
+	lastSyncTime?: number;
 }
 
 export const DEFAULT_SETTINGS: GithubSyncSettings = {

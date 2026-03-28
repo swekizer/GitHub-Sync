@@ -77,6 +77,27 @@ export default class GithubSyncPlugin extends Plugin {
 
 		try {
 			this.isSyncing = true;
+			this.setStatus('syncing', 'verifying connection...');
+
+			// 0. Verify credentials and repo before proceeding
+			try {
+				await this.gitManager.getRemoteInfo(this.settings.githubRepoUrl, this.settings.githubPat);
+			} catch (e: any) {
+				let msg = 'Connection failed';
+				// Isomorphic-git throws HttpError with statusCode, but we fallback to message matching just in case
+				if (e.statusCode === 401 || e.statusCode === 403 || e.message?.includes('401') || e.message?.includes('403')) {
+					msg = 'Authentication failed — check your GitHub token.';
+				} else if (e.statusCode === 404 || e.message?.includes('404')) {
+					msg = 'Repository not found — check your GitHub Repository URL.';
+				} else {
+					msg = `Connection error: ${e.message}`;
+				}
+				new Notice(`❌ ${msg}`, 7000);
+				this.setStatus('failed');
+				this.isSyncing = false;
+				return;
+			}
+
 			new Notice('Sync started...');
 			this.setStatus('syncing', 'starting...');
 			this.gitManager.setAuthor(this.settings.authorName || 'Obsidian User', this.settings.authorEmail || 'user@example.com');
@@ -133,6 +154,9 @@ export default class GithubSyncPlugin extends Plugin {
 			this.setStatus('syncing', 'pushing...');
 			new Notice('Pushing to GitHub...');
 			await this.gitManager.push(this.settings.githubRepoUrl, this.settings.githubPat);
+
+			this.settings.lastSyncTime = Date.now();
+			await this.saveSettings();
 
 			this.setStatus('idle');
 			new Notice('Sync complete! ✔️');

@@ -64,6 +64,14 @@ export class GitManager {
         return await git.statusMatrix({ fs: this.fs, dir: this.dir });
     }
 
+    async getHistory(limit = 20) {
+        try {
+            return await git.log({ fs: this.fs, dir: this.dir, depth: limit });
+        } catch {
+            return [];
+        }
+    }
+
     async getRemoteInfo(url: string, token: string) {
         return await git.getRemoteInfo({
             http,

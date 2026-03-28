@@ -30,10 +30,8 @@ export class SyncModal extends Modal {
         headerContainer.style.justifyContent = "space-between";
         headerContainer.style.alignItems = "center";
         headerContainer.style.marginBottom = "1rem";
-        headerContainer.style.borderBottom = "1px solid var(--background-modifier-border)";
-        headerContainer.style.paddingBottom = "0.5rem";
         
-        headerContainer.createEl("h2", { text: "Sync Status", cls: "sync-modal-title", attr: { style: "margin: 0;" } });
+        headerContainer.createEl("h2", { text: "Direct Git Sync", cls: "sync-modal-title", attr: { style: "margin: 0;" } });
         
         const syncBtn = headerContainer.createEl("button", { text: "Sync Now", cls: "mod-cta" });
         syncBtn.onclick = async () => {
@@ -41,14 +39,54 @@ export class SyncModal extends Modal {
             await this.plugin.runSync();
         };
 
-        const listContainer = contentEl.createDiv({ cls: "sync-modal-list" });
-        listContainer.style.maxHeight = "60vh";
-        listContainer.style.overflowY = "auto";
-        listContainer.createEl("p", { text: "Loading status..." });
+        // Tabs
+        const tabBar = contentEl.createDiv({ cls: "sync-modal-tabs" });
+        tabBar.style.display = "flex";
+        tabBar.style.gap = "1rem";
+        tabBar.style.marginBottom = "1rem";
+        tabBar.style.borderBottom = "1px solid var(--background-modifier-border)";
+
+        const pendingTabBtn = tabBar.createEl("div", { text: "Pending Changes" });
+        const historyTabBtn = tabBar.createEl("div", { text: "History" });
+
+        const styleTabBtn = (btn: HTMLElement, isActive: boolean) => {
+            btn.style.padding = "0.5rem 1rem";
+            btn.style.cursor = "pointer";
+            btn.style.fontWeight = isActive ? "bold" : "normal";
+            btn.style.borderBottom = isActive ? "2px solid var(--interactive-accent)" : "2px solid transparent";
+            btn.style.marginBottom = "-1px";
+            btn.style.transition = "all 0.2s ease";
+        };
+
+        const tabContent = contentEl.createDiv({ cls: "sync-modal-content" });
+        tabContent.style.maxHeight = "60vh";
+        tabContent.style.overflowY = "auto";
+        tabContent.style.paddingRight = "10px";
+
+        const switchTab = (tab: "pending" | "history") => {
+            styleTabBtn(pendingTabBtn, tab === "pending");
+            styleTabBtn(historyTabBtn, tab === "history");
+            tabContent.empty();
+            if (tab === "pending") {
+                this.renderPendingTab(tabContent);
+            } else {
+                this.renderHistoryTab(tabContent);
+            }
+        };
+
+        pendingTabBtn.onclick = () => switchTab("pending");
+        historyTabBtn.onclick = () => switchTab("history");
+
+        // Default to pending
+        switchTab("pending");
+    }
+
+    private async renderPendingTab(container: HTMLElement) {
+        container.createEl("p", { text: "Loading status..." });
 
         try {
             const matrix = await this.plugin.gitManager.getStatusMatrix();
-            listContainer.empty();
+            container.empty();
             
             const root: TreeNode = {
                 name: "Vault",
@@ -78,16 +116,59 @@ export class SyncModal extends Modal {
             }
 
             if (fileCount === 0) {
-                listContainer.createEl("p", { text: "No files found or Git is not initialized." });
+                container.createEl("p", { text: "No files found or Git is not initialized." });
                 return;
             }
 
             // Render Tree
-            this.renderTree(listContainer, root, 0);
+            this.renderTree(container, root, 0);
 
         } catch (e) {
-            listContainer.empty();
-            listContainer.createEl("p", { text: "Error loading status: " + (e as Error).message });
+            container.empty();
+            container.createEl("p", { text: "Error loading status: " + (e as Error).message });
+        }
+    }
+
+    private async renderHistoryTab(container: HTMLElement) {
+        // Render Last Sync Time
+        const lastSyncTime = this.plugin.settings.lastSyncTime;
+        const syncStatusDiv = container.createDiv({ attr: { style: "padding: 1rem; background-color: var(--background-secondary); border-radius: 8px; margin-bottom: 1rem;" } });
+        
+        const timeText = lastSyncTime ? new Date(lastSyncTime).toLocaleString() : "Never";
+        syncStatusDiv.createEl("h4", { text: "Last Successful Sync", attr: { style: "margin-top: 0; margin-bottom: 0.5rem;" } });
+        syncStatusDiv.createEl("p", { text: timeText, attr: { style: "margin: 0; color: var(--text-muted);" } });
+
+        container.createEl("h3", { text: "Recent Sync Activity", attr: { style: "margin-bottom: 1rem;" } });
+        container.createEl("p", { text: "Loading history..." });
+
+        try {
+            const history = await this.plugin.gitManager.getHistory(20);
+            container.lastElementChild?.remove(); // remove loading text
+
+            if (history.length === 0) {
+                container.createEl("p", { text: "No sync history found." });
+                return;
+            }
+
+            const listEl = container.createEl("ul", { attr: { style: "list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;" } });
+            
+            for (const commit of history) {
+                const li = listEl.createEl("li", { attr: { style: "padding: 10px; border: 1px solid var(--background-modifier-border); border-radius: 6px; background-color: var(--background-primary);" } });
+                
+                const headerObj = li.createDiv({ attr: { style: "display: flex; justify-content: space-between; margin-bottom: 4px;" } });
+                
+                const dateText = new Date(commit.commit.author.timestamp * 1000).toLocaleString();
+                headerObj.createSpan({ text: dateText, attr: { style: "font-weight: 500; font-size: 0.9em;" } });
+                
+                const hash = commit.oid.substring(0, 7);
+                headerObj.createSpan({ text: hash, attr: { style: "font-family: var(--font-monospace); font-size: 0.8em; color: var(--text-muted);" } });
+
+                li.createEl("div", { text: commit.commit.message, attr: { style: "font-size: 0.9em; color: var(--text-normal); white-space: pre-wrap;" } });
+            }
+
+        } catch (e) {
+            container.lastElementChild?.remove();
+            container.createEl("p", { text: "Error loading history: " + (e as Error).message });
         }
     }
 
