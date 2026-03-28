@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/ui/sentence-case */
 import { App, Modal, setIcon } from "obsidian";
 import GithubSyncPlugin from "./main";
 
@@ -31,7 +30,7 @@ export class SyncModal extends Modal {
             attr: { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;" }
         });
         
-        headerContainer.createEl("h2", { text: "Direct Git Sync", cls: "sync-modal-title", attr: { style: "margin: 0;" } });
+        headerContainer.createEl("h2", { text: "Git sync status", cls: "sync-modal-title", attr: { style: "margin: 0;" } });
         
         const syncBtn = headerContainer.createEl("button", { text: "Sync now", cls: "mod-cta" });
         syncBtn.onclick = async () => {

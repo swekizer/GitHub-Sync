@@ -1,4 +1,3 @@
-/* eslint-disable obsidianmd/ui/sentence-case */
 import {Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
 
@@ -27,7 +26,7 @@ export default class GithubSyncPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'show-sync-status',
-			name: 'Show Pending Changes',
+			name: 'Show pending changes',
 			callback: () => {
 				new SyncModal(this.app, this).open();
 			}

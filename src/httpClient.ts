@@ -1,4 +1,4 @@
-/* global AsyncIterable */
+/* global AsyncIterable, AsyncIterableIterator */
 import { requestUrl, RequestUrlParam, Platform } from "obsidian";
 
 export const obsidianHttpClient = {
@@ -8,12 +8,14 @@ export const obsidianHttpClient = {
         if (Platform.isDesktop) {
             try {
                 // Using dynamic import prevents esbuild from crashing the mobile plugin load
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-                const nodeHttp = (await import('isomorphic-git/http/node')) as any;
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+                type RequestParams = { url: string, method?: string, headers?: Record<string, string>, body?: Iterable<Uint8Array> | AsyncIterable<Uint8Array> };
+                type NodeHttp = { request?: (params: RequestParams) => Promise<unknown> };
+                const nodeHttp = (await import('isomorphic-git/http/node')) as unknown as NodeHttp & { default?: NodeHttp };
                 const httpClient = nodeHttp.default || nodeHttp;
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
-                return await httpClient.request(params);
+                if (httpClient.request) {
+                    const result = await httpClient.request(params);
+                    return result as { url: string, method?: string, headers: Record<string, string>, body?: AsyncIterableIterator<Uint8Array>, statusCode: number, statusMessage: string };
+                }
             } catch (e) {
                 console.warn('Failed to load Node HTTP client, falling back to Obsidian requestUrl buffer', e);
             }

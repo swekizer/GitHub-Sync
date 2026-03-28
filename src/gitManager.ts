@@ -109,8 +109,8 @@ export class GitManager {
                     try {
                         // Infer branch if defaultBranch is null (older remotes)
                         const remoteInfo = await this.getRemoteInfo(url, token);
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                        const heads = remoteInfo.refs?.heads as Record<string, string> | undefined;
+                        const refsMap = remoteInfo.refs as Record<string, Record<string, string>> | undefined;
+                        const heads = refsMap?.heads;
                         if (heads) {
                             const matchingBranch = Object.keys(heads).find(
                                 ref => heads[ref] === result.fetchHead
