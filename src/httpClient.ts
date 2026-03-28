@@ -1,3 +1,4 @@
+/* global AsyncIterable */
 import { requestUrl, RequestUrlParam, Platform } from "obsidian";
 
 export const obsidianHttpClient = {
@@ -7,10 +8,11 @@ export const obsidianHttpClient = {
         if (Platform.isDesktop) {
             try {
                 // Using dynamic import prevents esbuild from crashing the mobile plugin load
-                // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
                 const nodeHttp = (await import('isomorphic-git/http/node')) as any;
-                // The default export or the object itself might have the request method
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const httpClient = nodeHttp.default || nodeHttp;
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
                 return await httpClient.request(params);
             } catch (e) {
                 console.warn('Failed to load Node HTTP client, falling back to Obsidian requestUrl buffer', e);

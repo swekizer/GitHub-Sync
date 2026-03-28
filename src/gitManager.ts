@@ -109,13 +109,15 @@ export class GitManager {
                     try {
                         // Infer branch if defaultBranch is null (older remotes)
                         const remoteInfo = await this.getRemoteInfo(url, token);
-                        if (remoteInfo.refs?.heads) {
-                            const matchingBranch = Object.keys(remoteInfo.refs.heads).find(
-                                ref => remoteInfo.refs?.heads?.[ref] === result.fetchHead
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                        const heads = remoteInfo.refs?.heads as Record<string, string> | undefined;
+                        if (heads) {
+                            const matchingBranch = Object.keys(heads).find(
+                                ref => heads[ref] === result.fetchHead
                             );
                             if (matchingBranch) {
                                 branch = matchingBranch;
-                            } else if (remoteInfo.refs.heads['master']) {
+                            } else if (heads['master']) {
                                 branch = 'master';
                             }
                         }

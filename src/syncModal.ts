@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/ui/sentence-case */
 import { App, Modal, setIcon } from "obsidian";
 import GithubSyncPlugin from "./main";
 
@@ -25,60 +26,60 @@ export class SyncModal extends Modal {
         contentEl.addClass("github-sync-modal");
 
         // Header
-        const headerContainer = contentEl.createDiv({ cls: "sync-modal-header" });
-        headerContainer.style.display = "flex";
-        headerContainer.style.justifyContent = "space-between";
-        headerContainer.style.alignItems = "center";
-        headerContainer.style.marginBottom = "1rem";
+        const headerContainer = contentEl.createDiv({ 
+            cls: "sync-modal-header",
+            attr: { style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;" }
+        });
         
         headerContainer.createEl("h2", { text: "Direct Git Sync", cls: "sync-modal-title", attr: { style: "margin: 0;" } });
         
-        const syncBtn = headerContainer.createEl("button", { text: "Sync Now", cls: "mod-cta" });
+        const syncBtn = headerContainer.createEl("button", { text: "Sync now", cls: "mod-cta" });
         syncBtn.onclick = async () => {
             this.close();
             await this.plugin.runSync();
         };
 
         // Tabs
-        const tabBar = contentEl.createDiv({ cls: "sync-modal-tabs" });
-        tabBar.style.display = "flex";
-        tabBar.style.gap = "1rem";
-        tabBar.style.marginBottom = "1rem";
-        tabBar.style.borderBottom = "1px solid var(--background-modifier-border)";
+        const tabBar = contentEl.createDiv({ 
+            cls: "sync-modal-tabs",
+            attr: { style: "display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--background-modifier-border);" }
+        });
 
-        const pendingTabBtn = tabBar.createEl("div", { text: "Pending Changes" });
+        const pendingTabBtn = tabBar.createEl("div", { text: "Pending changes" });
         const historyTabBtn = tabBar.createEl("div", { text: "History" });
 
         const styleTabBtn = (btn: HTMLElement, isActive: boolean) => {
-            btn.style.padding = "0.5rem 1rem";
-            btn.style.cursor = "pointer";
-            btn.style.fontWeight = isActive ? "bold" : "normal";
-            btn.style.borderBottom = isActive ? "2px solid var(--interactive-accent)" : "2px solid transparent";
-            btn.style.marginBottom = "-1px";
-            btn.style.transition = "all 0.2s ease";
+            btn.setCssStyles({
+                padding: "0.5rem 1rem",
+                cursor: "pointer",
+                fontWeight: isActive ? "bold" : "normal",
+                borderBottom: isActive ? "2px solid var(--interactive-accent)" : "2px solid transparent",
+                marginBottom: "-1px",
+                transition: "all 0.2s ease"
+            });
         };
 
-        const tabContent = contentEl.createDiv({ cls: "sync-modal-content" });
-        tabContent.style.maxHeight = "60vh";
-        tabContent.style.overflowY = "auto";
-        tabContent.style.paddingRight = "10px";
+        const tabContent = contentEl.createDiv({ 
+            cls: "sync-modal-content",
+            attr: { style: "max-height: 60vh; overflow-y: auto; padding-right: 10px;" }
+        });
 
-        const switchTab = (tab: "pending" | "history") => {
+        const switchTab = async (tab: "pending" | "history") => {
             styleTabBtn(pendingTabBtn, tab === "pending");
             styleTabBtn(historyTabBtn, tab === "history");
             tabContent.empty();
             if (tab === "pending") {
-                this.renderPendingTab(tabContent);
+                await this.renderPendingTab(tabContent);
             } else {
-                this.renderHistoryTab(tabContent);
+                await this.renderHistoryTab(tabContent);
             }
         };
 
-        pendingTabBtn.onclick = () => switchTab("pending");
-        historyTabBtn.onclick = () => switchTab("history");
+        pendingTabBtn.onclick = async () => await switchTab("pending");
+        historyTabBtn.onclick = async () => await switchTab("history");
 
         // Default to pending
-        switchTab("pending");
+        await switchTab("pending");
     }
 
     private async renderPendingTab(container: HTMLElement) {
@@ -135,10 +136,10 @@ export class SyncModal extends Modal {
         const syncStatusDiv = container.createDiv({ attr: { style: "padding: 1rem; background-color: var(--background-secondary); border-radius: 8px; margin-bottom: 1rem;" } });
         
         const timeText = lastSyncTime ? new Date(lastSyncTime).toLocaleString() : "Never";
-        syncStatusDiv.createEl("h4", { text: "Last Successful Sync", attr: { style: "margin-top: 0; margin-bottom: 0.5rem;" } });
+        syncStatusDiv.createEl("h4", { text: "Last successful sync", attr: { style: "margin-top: 0; margin-bottom: 0.5rem;" } });
         syncStatusDiv.createEl("p", { text: timeText, attr: { style: "margin: 0; color: var(--text-muted);" } });
 
-        container.createEl("h3", { text: "Recent Sync Activity", attr: { style: "margin-bottom: 1rem;" } });
+        container.createEl("h3", { text: "Recent sync activity", attr: { style: "margin-bottom: 1rem;" } });
         container.createEl("p", { text: "Loading history..." });
 
         try {
@@ -233,10 +234,10 @@ export class SyncModal extends Modal {
         
         if (node.status === 'synced') {
             setIcon(iconEl, 'check-circle');
-            iconEl.style.color = 'var(--text-success)';
+            iconEl.setCssStyles({ color: 'var(--text-success)' });
         } else {
             setIcon(iconEl, 'x-circle');
-            iconEl.style.color = 'var(--text-error)';
+            iconEl.setCssStyles({ color: 'var(--text-error)' });
         }
 
         // Add file/folder icon

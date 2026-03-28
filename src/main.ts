@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/ui/sentence-case */
 import {Notice, Plugin} from 'obsidian';
 import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./settings";
 
@@ -82,15 +83,16 @@ export default class GithubSyncPlugin extends Plugin {
 			// 0. Verify credentials and repo before proceeding
 			try {
 				await this.gitManager.getRemoteInfo(this.settings.githubRepoUrl, this.settings.githubPat);
-			} catch (e: any) {
+			} catch (e: unknown) {
+				const err = e as { statusCode?: number, message?: string };
 				let msg = 'Connection failed';
 				// Isomorphic-git throws HttpError with statusCode, but we fallback to message matching just in case
-				if (e.statusCode === 401 || e.statusCode === 403 || e.message?.includes('401') || e.message?.includes('403')) {
+				if (err.statusCode === 401 || err.statusCode === 403 || err.message?.includes('401') || err.message?.includes('403')) {
 					msg = 'Authentication failed — check your GitHub token.';
-				} else if (e.statusCode === 404 || e.message?.includes('404')) {
+				} else if (err.statusCode === 404 || err.message?.includes('404')) {
 					msg = 'Repository not found — check your GitHub Repository URL.';
 				} else {
-					msg = `Connection error: ${e.message}`;
+					msg = `Connection error: ${err.message || String(e)}`;
 				}
 				new Notice(`❌ ${msg}`, 7000);
 				this.setStatus('failed');
@@ -115,7 +117,6 @@ export default class GithubSyncPlugin extends Plugin {
 
 			// 2. Stage & Commit (skip if automated sync and no local changes detected)
 			if (!isAuto || this.localChangesExist) {
-				const hadLocalChanges = this.localChangesExist;
 				this.localChangesExist = false;
 				
 				this.setStatus('syncing', 'staging...');
@@ -173,9 +174,11 @@ export default class GithubSyncPlugin extends Plugin {
 		this.clearAutoSync();
 		if (this.settings.autoSyncEnabled && this.settings.autoSyncInterval >= 5) {
 			const intervalMs = this.settings.autoSyncInterval * 60 * 1000;
-			this.autoSyncIntervalId = window.setInterval(() => {
+			const id = window.setInterval(() => {
 				void this.runSync(true);
 			}, intervalMs);
+			this.registerInterval(id);
+			this.autoSyncIntervalId = id;
 		}
 	}
 
