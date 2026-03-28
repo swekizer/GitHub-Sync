@@ -8,6 +8,7 @@ export interface GithubSyncSettings {
 	authorEmail: string;
 	autoSyncEnabled: boolean;
 	autoSyncInterval: number; // in minutes
+	ignoredPaths: string;
 }
 
 export const DEFAULT_SETTINGS: GithubSyncSettings = {
@@ -16,7 +17,8 @@ export const DEFAULT_SETTINGS: GithubSyncSettings = {
 	authorName: '',
 	authorEmail: '',
 	autoSyncEnabled: false,
-	autoSyncInterval: 5
+	autoSyncInterval: 5,
+	ignoredPaths: ''
 }
 
 export class GithubSyncSettingTab extends PluginSettingTab {
@@ -93,17 +95,30 @@ export class GithubSyncSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Sync interval (minutes)')
-			.setDesc('How often to auto-sync. Minimum 1 minute.')
+			.setDesc('How often to auto-sync. Minimum 5 minutes.')
 			.addText(text => text
 				.setPlaceholder('5')
 				.setValue(String(this.plugin.settings.autoSyncInterval))
 				.onChange(async (value) => {
 					const num = parseInt(value, 10);
-					if (!isNaN(num) && num >= 1) {
+					if (!isNaN(num) && num >= 5) {
 						this.plugin.settings.autoSyncInterval = num;
 						await this.plugin.saveSettings();
 						this.plugin.restartAutoSync();
 					}
+				}));
+
+		new Setting(containerEl).setName('Advanced').setHeading();
+
+		new Setting(containerEl)
+			.setName('Files to ignore')
+			.setDesc('One path per line. These will be added to your vault\'s .gitignore file.')
+			.addTextArea(text => text
+				.setPlaceholder('my-folder/\nlarge-file.pdf\nnode_modules/')
+				.setValue(this.plugin.settings.ignoredPaths)
+				.onChange(async (value) => {
+					this.plugin.settings.ignoredPaths = value;
+					await this.plugin.saveSettings();
 				}));
 	}
 }

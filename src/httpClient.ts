@@ -6,9 +6,9 @@ export const obsidianHttpClient = {
         // We must use Obsidian's requestUrl on mobile to bypass CORS, even though it buffers entirely in memory.
         if (Platform.isDesktop) {
             try {
-                // Using dynamic require prevents esbuild from crashing the mobile plugin load
+                // Using dynamic import prevents esbuild from crashing the mobile plugin load
                 // @ts-ignore
-                const nodeHttp = require('isomorphic-git/http/node');
+                const nodeHttp = (await import('isomorphic-git/http/node')) as any;
                 // The default export or the object itself might have the request method
                 const httpClient = nodeHttp.default || nodeHttp;
                 return await httpClient.request(params);

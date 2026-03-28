@@ -3,12 +3,14 @@ import {DEFAULT_SETTINGS, GithubSyncSettings, GithubSyncSettingTab} from "./sett
 
 import { ObsidianFS } from "./fs";
 import { GitManager } from "./gitManager";
+import { SyncModal } from "./syncModal";
 
 export default class GithubSyncPlugin extends Plugin {
 	settings: GithubSyncSettings;
 	gitManager: GitManager;
 	autoSyncIntervalId: number | null = null;
 	isSyncing = false;
+	localChangesExist = true;
 	statusBarItemEl: HTMLElement;
 
 	async onload() {
@@ -16,9 +18,18 @@ export default class GithubSyncPlugin extends Plugin {
 
 		const obsFs = new ObsidianFS(this.app.vault.adapter);
 		this.gitManager = new GitManager(obsFs, this.app.vault.configDir);
+		await this.gitManager.updateGitIgnore(this.settings.ignoredPaths);
 
 		this.addRibbonIcon('refresh-cw', 'Sync with GitHub', async () => {
 			await this.runSync();
+		});
+
+		this.addCommand({
+			id: 'show-sync-status',
+			name: 'Show Pending Changes',
+			callback: () => {
+				new SyncModal(this.app, this).open();
+			}
 		});
 
 		this.addSettingTab(new GithubSyncSettingTab(this.app, this));
@@ -29,6 +40,13 @@ export default class GithubSyncPlugin extends Plugin {
 
 		// Start auto-sync if enabled
 		this.restartAutoSync();
+
+		// Track local changes to avoid deep status checks when idle
+		const setLocalChangesTrue = () => { this.localChangesExist = true; };
+		this.registerEvent(this.app.vault.on('modify', setLocalChangesTrue));
+		this.registerEvent(this.app.vault.on('create', setLocalChangesTrue));
+		this.registerEvent(this.app.vault.on('delete', setLocalChangesTrue));
+		this.registerEvent(this.app.vault.on('rename', setLocalChangesTrue));
 	}
 
 	onunload() {
@@ -45,7 +63,7 @@ export default class GithubSyncPlugin extends Plugin {
 		this.statusBarItemEl.setText(labels[state]);
 	}
 
-	async runSync() {
+	async runSync(isAuto = false) {
 		if (!this.settings.githubRepoUrl || !this.settings.githubPat) {
 			new Notice('Please configure your GitHub repository URL and personal access token in settings.');
 			this.setStatus('unconfigured');
@@ -74,14 +92,20 @@ export default class GithubSyncPlugin extends Plugin {
 				);
 			}
 
-			
-			// 2. Stage & Commit (skip commit if nothing changed)
-			this.setStatus('syncing', 'staging...');
-			new Notice('Staging changes...');
-			const hasChanges = await this.gitManager.stageAll();
-			if (hasChanges) {
-				new Notice('Committing...');
-				await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
+			// 2. Stage & Commit (skip if automated sync and no local changes detected)
+			if (!isAuto || this.localChangesExist) {
+				const hadLocalChanges = this.localChangesExist;
+				this.localChangesExist = false;
+				
+				this.setStatus('syncing', 'staging...');
+				new Notice('Staging changes...');
+				const hasChanges = await this.gitManager.stageAll();
+				if (hasChanges) {
+					new Notice('Committing...');
+					await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
+				}
+			} else {
+				console.debug('[DirectGitSync] Skipping local status check; no changes detected.');
 			}
 
 			// 3. Fetch & Merge
@@ -123,13 +147,11 @@ export default class GithubSyncPlugin extends Plugin {
 
 	restartAutoSync() {
 		this.clearAutoSync();
-		if (this.settings.autoSyncEnabled && this.settings.autoSyncInterval >= 1) {
+		if (this.settings.autoSyncEnabled && this.settings.autoSyncInterval >= 5) {
 			const intervalMs = this.settings.autoSyncInterval * 60 * 1000;
 			this.autoSyncIntervalId = window.setInterval(() => {
-				void this.runSync();
+				void this.runSync(true);
 			}, intervalMs);
-			// Register interval with Obsidian so it's cleaned up automatically
-			this.registerInterval(this.autoSyncIntervalId);
 		}
 	}
 
@@ -146,6 +168,7 @@ export default class GithubSyncPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		await this.gitManager.updateGitIgnore(this.settings.ignoredPaths);
 	}
 }
 
