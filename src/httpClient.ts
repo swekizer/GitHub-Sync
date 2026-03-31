@@ -1,4 +1,4 @@
-/* global AsyncIterable, AsyncIterableIterator */
+/* global AsyncIterable, AsyncIterableIterator -- Required for Obsidian and isomorphic-git types */
 import { requestUrl, RequestUrlParam, Platform } from "obsidian";
 
 export const obsidianHttpClient = {
