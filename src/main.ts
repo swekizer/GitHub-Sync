@@ -17,7 +17,7 @@ export default class GithubSyncPlugin extends Plugin {
 		await this.loadSettings();
 
 		const obsFs = new ObsidianFS(this.app.vault.adapter);
-		this.gitManager = new GitManager(obsFs, this.app.vault.configDir);
+		this.gitManager = new GitManager(obsFs, this.app.vault.configDir, this.manifest.id);
 		await this.gitManager.updateGitIgnore(this.settings.ignoredPaths);
 
 		this.addRibbonIcon('refresh-cw', 'Sync with GitHub', async () => {
@@ -116,8 +116,6 @@ export default class GithubSyncPlugin extends Plugin {
 
 			// 2. Stage & Commit (skip if automated sync and no local changes detected)
 			if (!isAuto || this.localChangesExist) {
-				this.localChangesExist = false;
-				
 				this.setStatus('syncing', 'staging...');
 				new Notice('Staging changes...');
 				const hasChanges = await this.gitManager.stageAll();
@@ -125,6 +123,7 @@ export default class GithubSyncPlugin extends Plugin {
 					new Notice('Committing...');
 					await this.gitManager.commit(`Sync from Obsidian on ${new Date().toLocaleString()}`);
 				}
+				this.localChangesExist = false;
 			} else {
 				console.debug('[DirectGitSync] Skipping local status check; no changes detected.');
 			}
@@ -162,6 +161,7 @@ export default class GithubSyncPlugin extends Plugin {
 			new Notice('Sync complete! ✔️');
 		} catch (e: unknown) {
 			console.error(e);
+			this.localChangesExist = true;
 			this.setStatus('failed');
 			new Notice(`Sync failed: ${(e as Error).message}`, 5000);
 		} finally {
